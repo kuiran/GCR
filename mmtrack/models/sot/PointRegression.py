@@ -286,14 +286,14 @@ class SinglePointDIIHead(BBoxHead):
                  reg_dims=4,
                  dropout=0.0,
                  ffn_act_cfg=dict(type='ReLU', inplace=True),
-                 dynamic_conv_cfg=dict(
-                     type='DynamicConv',
-                     in_channels=256,
-                     feat_channels=64,
-                     out_channels=256,
-                     input_feat_shape=7,
-                     act_cfg=dict(type='ReLU', inplace=True),
-                     norm_cfg=dict(type='LN')),
+                 guide_conv_cfg=dict(
+                        type='GuidedConv',
+                        in_channels=256,
+                        feat_channels=64,
+                        out_channels=256,
+                        input_feat_shape=7,
+                        act_cfg=dict(type='ReLU', inplace=True),
+                        norm_cfg=dict(type='LN')),
                  loss_iou=dict(type='GIoULoss', loss_weight=2.0),
                  init_cfg=None,
                  **kwargs
@@ -311,7 +311,7 @@ class SinglePointDIIHead(BBoxHead):
         self.attention = MultiheadAttention(in_channels, num_heads, dropout)
         self.attention_norm = build_norm_layer(dict(type='LN'), in_channels)[1]
 
-        self.instance_interactive_conv = build_transformer(dynamic_conv_cfg)
+        self.instance_interactive_conv = build_transformer(guide_conv_cfg)
         self.instance_interactive_conv_dropout = nn.Dropout(dropout)
         self.instance_interactive_conv_norm = build_norm_layer(dict(type='LN'), in_channels)[1]
 

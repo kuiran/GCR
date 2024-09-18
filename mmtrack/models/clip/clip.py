@@ -1,13 +1,13 @@
 import torch
 
 from mmtrack.models import MODELS
-from mmtrack.models.uti.uti1 import UnifiedTrackersInput2
+from mmtrack.models.gcr.gcr import GCR
 import torch.nn as nn
 import clip
 
 
 @MODELS.register_module()
-class ClipRefine(UnifiedTrackersInput2):
+class ClipRefine(GCR):
     def __init__(self, backbone, *args, **kwargs):
         super(ClipRefine, self).__init__(backbone, *args, **kwargs)
         self.model, self.preprocess = clip.load(backbone, device="cuda")

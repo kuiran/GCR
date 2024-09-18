@@ -1,8 +1,8 @@
 from mmdet.models.builder import HEADS
 from mmdet.models.roi_heads.cascade_roi_head import CascadeRoIHead
 from mmdet.core import bbox2roi
-from . import UnifiedTrackersInputRoIHead
 from mmdet.models.builder import build_backbone, build_head, build_neck
+import clip
 
 
 @HEADS.register_module()
@@ -548,6 +548,21 @@ class GuidedConv(BaseModule):
         return features, filter_roi_features
 
 
+from mmdet.models.roi_heads.bbox_heads import BBoxHead
+from mmdet.models.builder import build_loss
+from mmcv.cnn.bricks.transformer import FFN, MultiheadAttention
+from mmcv.cnn import (bias_init_with_prob, build_activation_layer,
+                      build_norm_layer)
+from mmdet.models.utils import build_transformer
+from mmcv.runner import auto_fp16, force_fp32
+import torch.nn as nn
+from mmdet.core.bbox.iou_calculators import bbox_overlaps
+
+from mmdet.models.builder import HEADS
+from mmdet.models.roi_heads.cascade_roi_head import CascadeRoIHead
+from mmdet.core import bbox2roi
+
+
 @HEADS.register_module()
 class GCRIOUHead(BBoxHead):
     def __init__(self,
@@ -586,7 +601,7 @@ class GCRIOUHead(BBoxHead):
         self.attention = MultiheadAttention(in_channels, num_heads, dropout)
         self.attention_norm = build_norm_layer(dict(type='LN'), in_channels)[1]
 
-        self.instance_interactive_conv = build_transformer(guide_conv_cfg_conv_cfg)
+        self.instance_interactive_conv = build_transformer(guide_conv_cfg)
         self.instance_interactive_conv_dropout = nn.Dropout(dropout)
         self.instance_interactive_conv_norm = build_norm_layer(dict(type='LN'), in_channels)[1]
 
@@ -617,7 +632,7 @@ class GCRIOUHead(BBoxHead):
     def init_weights(self):
         """Use xavier initialization for all weight parameter and set
         classification head bias as a specific value when use focal loss."""
-        super(UTIDIIIOUHead, self).init_weights()
+        super(GCRIOUHead, self).init_weights()
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
@@ -769,7 +784,7 @@ class GCRBoxHead(BBoxHead):
     def init_weights(self):
         """Use xavier initialization for all weight parameter and set
         classification head bias as a specific value when use focal loss."""
-        super(UTIDIIBoxHead, self).init_weights()
+        super(GCRBoxHead, self).init_weights()
         for p in self.parameters():
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
@@ -879,3 +894,37 @@ class GCRBoxHead(BBoxHead):
             losses['loss_bbox'] = bbox_pred.sum() * 0
             losses['loss_iou'] = bbox_pred.sum() * 0
         return losses
+    
+class MLP(BaseModule):
+    """Very simple multi-layer perceptron (also called FFN) with relu. Mostly
+    used in DETR series detectors.
+
+    Args:
+        input_dim (int): Feature dim of the input tensor.
+        hidden_dim (int): Feature dim of the hidden layer.
+        output_dim (int): Feature dim of the output tensor.
+        num_layers (int): Number of FFN layers. As the last
+            layer of MLP only contains FFN (Linear).
+    """
+
+    def __init__(self, input_dim, hidden_dim, output_dim,
+                 num_layers):
+        super().__init__()
+        self.num_layers = num_layers
+        h = [hidden_dim] * (num_layers - 1)
+        self.layers = nn.ModuleList(
+            nn.Linear(n, k) for n, k in zip([input_dim] + h, h + [output_dim]))
+
+    def forward(self, x):
+        """Forward function of MLP.
+
+        Args:
+            x (Tensor): The input feature, has shape
+                (num_queries, bs, input_dim).
+        Returns:
+            Tensor: The output feature, has shape
+                (num_queries, bs, output_dim).
+        """
+        for i, layer in enumerate(self.layers):
+            x = F.relu(layer(x)) if i < self.num_layers - 1 else layer(x)
+        return x
