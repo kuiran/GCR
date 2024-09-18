@@ -18,12 +18,6 @@ class GCR_head(CascadeRoIHead):
                      out_channels=256,
                      featmap_strides=[4, 8, 16, 32]),
                  mask_roi_extractor=None,
-                 attn_head=dict(
-                     type='AttentionHead1',
-                     in_channels=256,
-                     hide_channels=2048,
-                     out_channels=256
-                 ),
                  box_refinest1=dict(
                     type='GCRBoxHead',
                     num_classes=1,
@@ -96,7 +90,6 @@ class GCR_head(CascadeRoIHead):
             init_cfg=init_cfg
         )
         self.pred_iou_head = build_head(pred_iou_head)
-        self.attn_head = build_head(attn_head)
         self.text_mlp = MLP(input_dim=512, hidden_dim=256, output_dim=256, num_layers=4)
         self.batch_size = 8
 
