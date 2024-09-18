@@ -1,7 +1,7 @@
 ## Installation
 Our code is based on MMtracking master branch [Link](https://github.com/open-mmlab/mmtracking), you can fllow the installation guiding [installation](https://github.com/open-mmlab/mmtracking/blob/master/docs/en/install.md) to create your environment.
 ## Model
-We provide our pretrain model on [model_link]()
+We provide our pretrain model on [model_link](https://drive.google.com/file/d/1GxfBa8HSMPbZ3BpeBBQIaorqsPz-iQSw/view?usp=drive_link)
 ## Training & Inference
 ### Training
     bash ./tools/dist_train.sh ${config_path} 8 --work-dir ${dir}
