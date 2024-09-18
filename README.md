@@ -25,4 +25,4 @@ Our code is based on MMtracking master branch [Link](https://github.com/open-mml
      --cfg-options data.test.replace_first_frame_ann=True \
      data.test.first_frame_ann_path={work_dir}/result.txt
 
-#If you have any problem when using the code, please contact with us.
+# If you have any problem when using the code, please contact with us.
